@@ -1,0 +1,21 @@
+version: '3.8'
+
+services:
+  nginx1:
+    container_name: ranaaksoy-nginx1-1
+    image: nginx
+    volumes:
+      - ./bind-mount:/mnt/bind  # Bind Mount für /mnt/bind im Container
+      - my_named_volume:/usr/share/nginx/html  # Named Volume für /usr/share/nginx/html
+      - type: tmpfs
+        target: /mnt/tmpfs  # tmpfs Mount für /mnt/tmpfs im Container
+
+  nginx2:
+    container_name: ranaaksoy-nginx2-1
+    image: nginx
+    volumes:
+      - ./bind-mount:/mnt/bind  # Bind Mount für /mnt/bind im Container
+      - my_named_volume:/usr/share/nginx/html  # Named Volume für /usr/share/nginx/html
+
+volumes:
+  my_named_volume:  # Definition des Named Volumes

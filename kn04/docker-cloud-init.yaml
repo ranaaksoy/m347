@@ -1,0 +1,76 @@
+#cloud-config
+users:
+  - name: ubuntu
+    sudo: ALL=(ALL) NOPASSWD:ALL
+    groups: users, admin, docker
+    home: /home/ubuntu
+    shell: /bin/bash
+    ssh_authorized_keys:
+      - ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQCUBo+qnNu5xxM9vfz4C04M36FHxHNrEMdm5TkFj1/SfVtqunlUOeMpu7nFCZZKnX8HYwf/MkjcBiTYAgncxku8grwl6XuW/pcvmb6/ghSIaw4xtRRSzit7omqJ5d8kXB3+Nd1aaMHsjfly4nkaqswhySVXQqr8Hw6DbWVw8jLLVKEE+5NZHY33hJkhJwK4blCllsGpmQaKi1qxjsN0hZOWNK01iJAydwD8t2xJ0NOYbq8Qas5IyPnRN7SPxvEhIP6WLQ6Ym6Dmf8FwNW1cHLTKabgjzt5f/HKUkKS89dPd3fn4nnFli1BOMECGUIvVlOw2pQNri7+04OOfn2FGlqr5 teacher
+      - ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQDOH+xaI+RBPwOSfEoCW5RPxumVSYU0iXhmDXnk4ulh210RqXyhN/KspqKIzujPk64HDHO6h90L7W6+VmmURNUACCqJBzLXjF7mEdEODUZ5SXDctbvZC9zEDZgbyBfHhdEIbOpKj/Zzlt8pr/yn5NWgKe9GzxWw/IBkh4wg5Q3zqM8/x3+f5M/Nj62QLMuxU3i0rDQ1ITGPtOZiA9Ea3UU++itSyNziLij+cXRjr9tPUTxVL0NGE/+6K5xEDAxkelB3NlpnLqKmPAr+t4NGE069oYE+nx1LsPhADHoTQYhKUOVcYW+vCXcuJaZlc5paqlaCJFgohq9Mpz41Wl9ZfOeN aws-key
+ssh_pwauth: false
+disable_root: false
+package_update: true
+package_upgrade: true
+groups:
+  - docker
+system_info:
+  default_user:
+    groups: [docker]
+packages:
+  - apt-transport-https
+  - ca-certificates
+  - curl
+  - gnupg
+  - lsb-release
+  - unattended-upgrades
+write_files:
+  # Docker Compose YAML-Datei hinzufügen
+  - path: /home/ubuntu/docker-compose.yml
+    content: |
+      version: '3.8'
+      services:
+        db:
+          image: mariadb:latest
+          container_name: m347-kn04a-db
+          environment:
+            MYSQL_ROOT_PASSWORD: rootpassword
+            MYSQL_DATABASE: my_database
+          networks:
+            custom_network:
+              ipv4_address: 172.10.5.10
+        web:
+          image: aksoyrana/m347-kn04a-web
+          container_name: m347-kn04a-web
+          ports:
+            - "80:80"
+          depends_on:
+            - db
+          networks:
+            custom_network:
+              ipv4_address: 172.10.5.20
+      networks:
+        custom_network:
+          driver: bridge
+          ipam:
+            config:
+              - subnet: 172.10.0.0/16
+                ip_range: 172.10.5.0/24
+                gateway: 172.10.5.254
+
+  # Dockerfile für den Webserver
+  - path: /home/ubuntu/Dockerfile
+    content: |
+      FROM php:7.4-apache
+      COPY ./src/ /var/www/html/
+      RUN docker-php-ext-install mysqli
+runcmd:
+  - mkdir -p /etc/apt/keyrings
+  - curl -fsSL https://download.docker.com/linux/ubuntu/gpg | gpg --dearmor -o /etc/apt/keyrings/docker.gpg
+  - echo "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.gpg] https://download.docker.com/linux/ubuntu $(lsb_release -cs) stable" | tee /etc/apt/sources.list.d/docker.list > /dev/null
+  - apt-get update
+  - apt-get install -y docker-ce docker-ce-cli containerd.io docker-compose-plugin
+  - systemctl enable docker
+  - systemctl start docker
+  - cd /home/ubuntu && sudo docker-compose up -d
+final_message: "The system is finally up, after $UPTIME seconds"

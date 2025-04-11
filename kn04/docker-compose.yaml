@@ -1,0 +1,40 @@
+version: "3.8"
+
+networks:
+  m347-kn04a-net:
+    ipam:
+      driver: default
+      config:
+        - subnet: 172.20.0.0/16
+          ip_range: 172.20.5.0/24
+          gateway: 172.20.5.254
+
+services:
+  web:
+    container_name: m347-kn04a-web
+    image: aksoyrana/m347-kn04a-web:latest
+    ports:
+      - "8080:80"
+    depends_on:
+      - db
+    networks:
+      m347-kn04a-net:
+        ipv4_address: 172.20.5.10
+
+  db:
+    container_name: m347-kn04a-db
+    image: aksoyrana/m347-kn04a-db:latest
+    environment:
+      MYSQL_ROOT_PASSWORD: root
+      MYSQL_DATABASE: mydb
+      MYSQL_USER: user
+      MYSQL_PASSWORD: password
+    networks:
+      m347-kn04a-net:
+        ipv4_address: 172.20.5.20
+    volumes:
+      - db_data:/var/lib/mysql
+
+volumes:
+  db_data:
+    external: true
